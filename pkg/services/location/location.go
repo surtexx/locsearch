@@ -1,32 +1,56 @@
 package location
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
+	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/surtexx/locsearch/pkg/db/dynamodbclient"
 	"github.com/umahmood/haversine"
 )
 
 type User struct {
-	Username string `json:"username"`
-	Location string `json:"location"`
+	Username  string
+	Location  string
+	Timestamp string
 }
 
 func UpdateLocation(username, newLocation string) {
-	mongoClient := connectToMongo()
-	defer mongoClient.Disconnect(context.Background())
+	svc := dynamodbclient.Connect()
 
-	collection := mongoClient.Database("locsearch").Collection("locations")
+	tableName := "locations"
 
-	filter := bson.D{{"username", username}}
-	update := bson.D{
-		{"$set", bson.D{
-			{"location", newLocation},
-		}}}
+	currentTime := time.Now().Format(time.RFC3339)
 
-	_, err := collection.UpdateOne(context.Background(), filter, update)
+	input := &dynamodb.UpdateItemInput{
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":l": {
+				S: aws.String(newLocation),
+			},
+			":t": {
+				S: aws.String(currentTime),
+			},
+		},
+		TableName: aws.String(tableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			"Username": {
+				S: aws.String(username),
+			},
+		},
+		ReturnValues:     aws.String("UPDATED_NEW"),
+		UpdateExpression: aws.String("set #loc = :l, #ts = :t"),
+		ExpressionAttributeNames: map[string]*string{
+			"#loc": aws.String("Location"),
+			"#ts":  aws.String("Timestamp"),
+		},
+	}
+
+	_, err := svc.UpdateItem(input)
 	if err != nil {
 		panic(err)
 	}
@@ -35,29 +59,30 @@ func UpdateLocation(username, newLocation string) {
 }
 
 func SearchUsers(coordinates string, radius float64) []string {
-	mongoClient := connectToMongo()
-	defer mongoClient.Disconnect(context.Background())
+	svc := dynamodbclient.Connect()
 
-	collection := mongoClient.Database("locsearch").Collection("locations")
+	tableName := "locations"
 
-	users := []User{}
+	input := &dynamodb.ScanInput{
+		TableName: aws.String(tableName),
+	}
 
-	cursor, err := collection.Find(context.Background(), bson.D{})
+	result, err := svc.Scan(input)
 	if err != nil {
 		panic(err)
 	}
 
-	for cursor.Next(context.Background()) {
-		var user User
-		err := cursor.Decode(&user)
+	var users []User
+	for _, item := range result.Items {
+		user := User{}
+
+		err = dynamodbattribute.UnmarshalMap(item, &user)
 		if err != nil {
 			panic(err)
 		}
 
 		users = append(users, user)
 	}
-
-	usernames := []string{}
 
 	coordinates = strings.TrimSpace(coordinates)
 	coordinatesSplit := strings.Split(coordinates, ",")
@@ -76,6 +101,7 @@ func SearchUsers(coordinates string, radius float64) []string {
 
 	coords := haversine.Coord{Lat: latitude, Lon: longitude}
 
+	var usernames []string
 	for _, user := range users {
 		userCoordinates := strings.Split(user.Location, ",")
 		userCoordinates[0] = strings.TrimSpace(userCoordinates[0])

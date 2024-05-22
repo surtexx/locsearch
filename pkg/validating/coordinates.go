@@ -16,9 +16,9 @@ func ValidateCoordinates(coordinates string) bool {
 			return false
 		}
 
-		sanitizedCoordinate := filter.Choose(coordinate, func(r rune) bool {
+		sanitizedCoordinate := filter.Choose([]rune(coordinate), func(r rune) bool {
 			return (r >= '0' && r <= '9') || r == '.'
-		}).(string)
+		}).([]rune)
 
 		if len(sanitizedCoordinate) != len(coordinate) {
 			return false

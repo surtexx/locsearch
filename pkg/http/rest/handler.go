@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/surtexx/locsearch/pkg/services/location"
+	"github.com/surtexx/locsearch/pkg/services/locationHistory"
 	"github.com/surtexx/locsearch/pkg/validating"
 )
 
@@ -17,26 +18,24 @@ func Handler() *gin.Engine {
 }
 
 func updateLocation(c *gin.Context) {
-	if !validating.ValidateUsername(c.Query("username")) {
-		c.JSON(400, gin.H{"error": "Invalid username"})
-	}
-	if !validating.ValidateCoordinates(c.Query("newLocation")) {
-		c.JSON(400, gin.H{"error": "Invalid coordinates"})
-	}
-	if !validating.ValiDate(c.Query("timestamp")) {
-		c.JSON(400, gin.H{"error": "Invalid date. Use ISO 8601 format (YYY-MM-DDYTHH:MM:SS+HH:MM)"})
-	}
 	username := c.Query("username")
 	newLocation := c.Query("newLocation")
 
+	if !validating.ValidateUsername(username) {
+		c.JSON(400, gin.H{"error": "Invalid username"})
+	}
+	if !validating.ValidateCoordinates(newLocation) {
+		c.JSON(400, gin.H{"error": "Invalid coordinates"})
+	}
 	location.UpdateLocation(username, newLocation)
 }
 
 func searchUsers(c *gin.Context) {
-	if !validating.ValidateCoordinates(c.Query("coordinates")) {
+	coordinates := c.Query("coordinates")
+	if !validating.ValidateCoordinates(coordinates) {
 		c.JSON(400, gin.H{"error": "Invalid coordinates"})
 	}
-	coordinates := c.Query("coordinates")
+
 	radiusStr := c.Query("radius")
 	radius, err := strconv.ParseFloat(radiusStr, 64)
 	if err != nil {

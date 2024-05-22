@@ -7,9 +7,9 @@ func ValidateUsername(username string) bool {
 		return false
 	}
 
-	sanitizedUsername := filter.Choose(username, func(r rune) bool {
+	sanitizedUsername := filter.Choose([]rune(username), func(r rune) bool {
 		return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
-	}).(string)
+	}).([]rune)
 
 	return len(sanitizedUsername) == len(username)
 }
