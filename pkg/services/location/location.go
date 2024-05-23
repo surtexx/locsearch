@@ -1,3 +1,4 @@
+// This file contains the functions to update a user's location and search for users within a certain radius.
 package location
 
 import (

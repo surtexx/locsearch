@@ -1,3 +1,4 @@
+// Purpose: This package is responsible for validating the input data from the user.
 package validating
 
 import (

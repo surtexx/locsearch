@@ -1,3 +1,4 @@
+// This file contains the REST API handlers for the location and locationHistory services.
 package rest
 
 import (
@@ -9,6 +10,7 @@ import (
 	"github.com/surtexx/locsearch/pkg/validating"
 )
 
+// Handler returns a new gin engine with the REST API handlers.
 func Handler() *gin.Engine {
 	r := gin.Default()
 	r.PUT("/updateLocation", updateLocation)

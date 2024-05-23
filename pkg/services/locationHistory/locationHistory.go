@@ -1,3 +1,4 @@
+// Description: This package contains the functions to get the distance traveled by a user and to update the location history of a user.
 package locationHistory
 
 import (
@@ -13,6 +14,7 @@ import (
 	"github.com/umahmood/haversine"
 )
 
+// Coordinate represents a latitude and longitude. Used for deserializing the data from DynamoDB.
 type Coordinate struct {
 	Latitude  float64
 	Longitude float64
@@ -65,7 +67,6 @@ func GetDistanceTraveled(username, startDate, endDate string) float64 {
 		timestamps = location.Timestamps
 	}
 
-	// calculate distance traveled
 	distanceTraveled := 0.0
 	for i := 0; i < len(locations)-1; i++ {
 		if timestamps[i] < startDate {
@@ -101,6 +102,7 @@ func UpdateLocationHistory(username, location, currentTime string) {
 		panic(err)
 	}
 
+	// If the user does not exist in the table, add the user with the location and timestamp.
 	if getResult.Item == nil {
 		addInput := &dynamodb.PutItemInput{
 			TableName: aws.String(tableName),
@@ -129,6 +131,7 @@ func UpdateLocationHistory(username, location, currentTime string) {
 		if err != nil {
 			panic(err)
 		}
+		// If the user exists in the table, append the location and timestamp to the existing lists.
 	} else {
 		updateInput := &dynamodb.UpdateItemInput{
 			TableName: aws.String(tableName),
