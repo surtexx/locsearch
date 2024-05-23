@@ -22,9 +22,9 @@ func GetDistanceTraveled(username, startDate, endDate string) float64 {
 
 	tableName := "locationHistory"
 
-	filt := expression.Name("Username").Equal(expression.Value(username)).And(expression.Name("Timestamp").Between(expression.Value(startDate), expression.Value(endDate)))
+	filt := expression.Name("Username").Equal(expression.Value(username))
 
-	proj := expression.NamesList(expression.Name("Location"))
+	proj := expression.NamesList(expression.Name("Locations"), expression.Name("Timestamps"))
 
 	expr, err := expression.NewBuilder().WithFilter(filt).WithProjection(proj).Build()
 	if err != nil {
@@ -45,33 +45,34 @@ func GetDistanceTraveled(username, startDate, endDate string) float64 {
 	}
 
 	locations := []Coordinate{}
+	timestamps := []string{}
 	for _, i := range result.Items {
-		var location string
+		var location struct {
+			Locations  []string `json:"Locations"`
+			Timestamps []string `json:"Timestamps"`
+		}
 		err = dynamodbattribute.UnmarshalMap(i, &location)
 		if err != nil {
 			panic(err)
 		}
-
-		locationSplit := strings.Split(location, ",")
-		locationSplit[0] = strings.Trim(locationSplit[0], " ")
-		locationSplit[1] = strings.Trim(locationSplit[1], " ")
-
-		latitude, err := strconv.ParseFloat(locationSplit[0], 64)
-		if err != nil {
-			panic(err)
+		for _, location := range location.Locations {
+			locationSplit := strings.Split(location, ",")
+			latitude, _ := strconv.ParseFloat(locationSplit[0], 64)
+			longitude, _ := strconv.ParseFloat(locationSplit[1], 64)
+			locations = append(locations, Coordinate{Latitude: latitude, Longitude: longitude})
 		}
-
-		longitude, err := strconv.ParseFloat(locationSplit[1], 64)
-		if err != nil {
-			panic(err)
-		}
-
-		locations = append(locations, Coordinate{Latitude: latitude, Longitude: longitude})
+		timestamps = location.Timestamps
 	}
 
 	// calculate distance traveled
 	distanceTraveled := 0.0
 	for i := 0; i < len(locations)-1; i++ {
+		if timestamps[i] < startDate {
+			continue
+		}
+		if timestamps[i+1] > endDate {
+			break
+		}
 		location1 := haversine.Coord{Lat: locations[i].Latitude, Lon: locations[i].Longitude}
 		location2 := haversine.Coord{Lat: locations[i+1].Latitude, Lon: locations[i+1].Longitude}
 		km, _ := haversine.Distance(location1, location2)

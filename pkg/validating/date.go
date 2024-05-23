@@ -1,6 +1,8 @@
 package validating
 
-import "strings"
+import (
+	"strings"
+)
 
 // ISO 8601 format (YYY-MM-DDYTHH:MM:SS+HH:MM)
 func ValiDate(date string) bool {
@@ -8,7 +10,7 @@ func ValiDate(date string) bool {
 	date = dateSplit[0]
 	time := dateSplit[1]
 
-	timeSplit := strings.Split(time, "+")
+	timeSplit := strings.Split(time, " ")
 	time = timeSplit[0]
 	timeZone := timeSplit[1]
 
