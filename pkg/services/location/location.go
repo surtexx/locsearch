@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/surtexx/locsearch/pkg/db/dynamodbclient"
+	"github.com/surtexx/locsearch/pkg/services/locationHistory"
 	"github.com/umahmood/haversine"
 )
 
@@ -54,6 +55,8 @@ func UpdateLocation(username, newLocation string) {
 	if err != nil {
 		panic(err)
 	}
+
+	locationHistory.UpdateLocationHistory(username, newLocation, currentTime)
 
 	fmt.Println("Location updated")
 }

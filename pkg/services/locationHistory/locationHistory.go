@@ -82,13 +82,43 @@ func GetDistanceTraveled(username, startDate, endDate string) float64 {
 	return distanceTraveled
 }
 
-// func UpdateLocationHistory(username, location string) {
-// 	svc := dynamodbclient.Connect()
+func UpdateLocationHistory(username, location, currentTime string) {
+	svc := dynamodbclient.Connect()
 
-// 	tableName := "locationHistory"
+	tableName := "locationHistory"
 
-// 	_, err := svc.UpdateItem(input)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// }
+	input := &dynamodb.UpdateItemInput{
+		TableName: aws.String(tableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			"Username": {
+				S: aws.String(username),
+			},
+		},
+		UpdateExpression: aws.String("SET #locations = list_append(#locations, :location), #timestamps = list_append(#timestamps, :timestamp)"),
+		ExpressionAttributeNames: map[string]*string{
+			"#locations":  aws.String("Locations"),
+			"#timestamps": aws.String("Timestamps"),
+		},
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":location": {
+				L: []*dynamodb.AttributeValue{
+					{
+						S: aws.String(location),
+					},
+				},
+			},
+			":timestamp": {
+				L: []*dynamodb.AttributeValue{
+					{
+						S: aws.String(currentTime),
+					},
+				},
+			},
+		},
+	}
+
+	_, err := svc.UpdateItem(input)
+	if err != nil {
+		panic(err)
+	}
+}

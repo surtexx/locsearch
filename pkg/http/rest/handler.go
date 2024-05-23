@@ -23,9 +23,11 @@ func updateLocation(c *gin.Context) {
 
 	if !validating.ValidateUsername(username) {
 		c.JSON(400, gin.H{"error": "Invalid username"})
+		return
 	}
 	if !validating.ValidateCoordinates(newLocation) {
 		c.JSON(400, gin.H{"error": "Invalid coordinates"})
+		return
 	}
 	location.UpdateLocation(username, newLocation)
 }
@@ -34,6 +36,7 @@ func searchUsers(c *gin.Context) {
 	coordinates := c.Query("coordinates")
 	if !validating.ValidateCoordinates(coordinates) {
 		c.JSON(400, gin.H{"error": "Invalid coordinates"})
+		return
 	}
 
 	radiusStr := c.Query("radius")
@@ -48,18 +51,21 @@ func searchUsers(c *gin.Context) {
 }
 
 func getDistanceTraveled(c *gin.Context) {
-	if !validating.ValidateUsername(c.Query("username")) {
-		c.JSON(400, gin.H{"error": "Invalid username"})
-	}
-	if !validating.ValiDate(c.Query("startDate")) {
-		c.JSON(400, gin.H{"error": "Invalid date. Use ISO 8601 format (YYY-MM-DDYTHH:MM:SS+HH:MM)"})
-	}
-	if !validating.ValiDate(c.Query("endDate")) {
-		c.JSON(400, gin.H{"error": "Invalid date. Use ISO 8601 format (YYY-MM-DDYTHH:MM:SS+HH:MM)"})
-	}
 	username := c.Query("username")
 	startDate := c.Query("startDate")
 	endDate := c.Query("endDate")
+	if !validating.ValidateUsername(username) {
+		c.JSON(400, gin.H{"error": "Invalid username"})
+		return
+	}
+	if !validating.ValiDate(startDate) {
+		c.JSON(400, gin.H{"error": "Invalid date. Use ISO 8601 format (YYY-MM-DDYTHH:MM:SS+HH:MM)"})
+		return
+	}
+	if !validating.ValiDate(endDate) {
+		c.JSON(400, gin.H{"error": "Invalid date. Use ISO 8601 format (YYY-MM-DDYTHH:MM:SS+HH:MM)"})
+		return
+	}
 
 	distance := locationHistory.GetDistanceTraveled(username, startDate, endDate)
 	c.JSON(200, gin.H{"distance": distance})
