@@ -30,6 +30,7 @@ func updateLocation(c *gin.Context) {
 		return
 	}
 	location.UpdateLocation(username, newLocation)
+	c.JSON(200, gin.H{"message": "Location updated"})
 }
 
 func searchUsers(c *gin.Context) {

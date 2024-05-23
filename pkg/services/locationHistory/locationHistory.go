@@ -1,6 +1,7 @@
 package locationHistory
 
 import (
+	"os"
 	"strconv"
 	"strings"
 
@@ -20,7 +21,7 @@ type Coordinate struct {
 func GetDistanceTraveled(username, startDate, endDate string) float64 {
 	svc := dynamodbclient.Connect()
 
-	tableName := "locationHistory"
+	tableName := os.Getenv("LOCATION_HISTORY_TABLE")
 
 	filt := expression.Name("Username").Equal(expression.Value(username))
 
@@ -85,40 +86,83 @@ func GetDistanceTraveled(username, startDate, endDate string) float64 {
 func UpdateLocationHistory(username, location, currentTime string) {
 	svc := dynamodbclient.Connect()
 
-	tableName := "locationHistory"
+	tableName := os.Getenv("LOCATION_HISTORY_TABLE")
 
-	input := &dynamodb.UpdateItemInput{
+	getInput := &dynamodb.GetItemInput{
 		TableName: aws.String(tableName),
 		Key: map[string]*dynamodb.AttributeValue{
 			"Username": {
 				S: aws.String(username),
 			},
 		},
-		UpdateExpression: aws.String("SET #locations = list_append(#locations, :location), #timestamps = list_append(#timestamps, :timestamp)"),
-		ExpressionAttributeNames: map[string]*string{
-			"#locations":  aws.String("Locations"),
-			"#timestamps": aws.String("Timestamps"),
-		},
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":location": {
-				L: []*dynamodb.AttributeValue{
-					{
-						S: aws.String(location),
-					},
-				},
-			},
-			":timestamp": {
-				L: []*dynamodb.AttributeValue{
-					{
-						S: aws.String(currentTime),
-					},
-				},
-			},
-		},
 	}
-
-	_, err := svc.UpdateItem(input)
+	getResult, err := svc.GetItem(getInput)
 	if err != nil {
 		panic(err)
+	}
+
+	if getResult.Item == nil {
+		addInput := &dynamodb.PutItemInput{
+			TableName: aws.String(tableName),
+			Item: map[string]*dynamodb.AttributeValue{
+				"Username": {
+					S: aws.String(username),
+				},
+				"Locations": {
+					L: []*dynamodb.AttributeValue{
+						{
+							S: aws.String(location),
+						},
+					},
+				},
+				"Timestamps": {
+					L: []*dynamodb.AttributeValue{
+						{
+							S: aws.String(currentTime),
+						},
+					},
+				},
+			},
+		}
+
+		_, err := svc.PutItem(addInput)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		updateInput := &dynamodb.UpdateItemInput{
+			TableName: aws.String(tableName),
+			Key: map[string]*dynamodb.AttributeValue{
+				"Username": {
+					S: aws.String(username),
+				},
+			},
+			UpdateExpression: aws.String("SET #locations = list_append(#locations, :location), #timestamps = list_append(#timestamps, :timestamp)"),
+			ExpressionAttributeNames: map[string]*string{
+				"#locations":  aws.String("Locations"),
+				"#timestamps": aws.String("Timestamps"),
+			},
+			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+				":location": {
+					L: []*dynamodb.AttributeValue{
+						{
+							S: aws.String(location),
+						},
+					},
+				},
+				":timestamp": {
+					L: []*dynamodb.AttributeValue{
+						{
+							S: aws.String(currentTime),
+						},
+					},
+				},
+			},
+		}
+
+		_, err := svc.UpdateItem(updateInput)
+		if err != nil {
+			panic(err)
+		}
 	}
 }

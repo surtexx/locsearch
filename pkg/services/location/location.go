@@ -1,7 +1,7 @@
 package location
 
 import (
-	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -24,47 +24,80 @@ type User struct {
 func UpdateLocation(username, newLocation string) {
 	svc := dynamodbclient.Connect()
 
-	tableName := "locations"
+	tableName := os.Getenv("LOCATIONS_TABLE")
 
 	currentTime := time.Now().Format(time.RFC3339)
 
-	input := &dynamodb.UpdateItemInput{
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":l": {
-				S: aws.String(newLocation),
-			},
-			":t": {
-				S: aws.String(currentTime),
-			},
-		},
+	// Check if username exists
+	getItemInput := &dynamodb.GetItemInput{
 		TableName: aws.String(tableName),
 		Key: map[string]*dynamodb.AttributeValue{
 			"Username": {
 				S: aws.String(username),
 			},
 		},
-		ReturnValues:     aws.String("UPDATED_NEW"),
-		UpdateExpression: aws.String("set #loc = :l, #ts = :t"),
-		ExpressionAttributeNames: map[string]*string{
-			"#loc": aws.String("Location"),
-			"#ts":  aws.String("Timestamp"),
-		},
 	}
 
-	_, err := svc.UpdateItem(input)
+	result, err := svc.GetItem(getItemInput)
 	if err != nil {
 		panic(err)
 	}
+	if result.Item == nil {
+		item := &dynamodb.PutItemInput{
+			TableName: aws.String(tableName),
+			Item: map[string]*dynamodb.AttributeValue{
+				"Username": {
+					S: aws.String(username),
+				},
+				"Location": {
+					S: aws.String(newLocation),
+				},
+				"Timestamp": {
+					S: aws.String(currentTime),
+				},
+			},
+		}
 
+		_, err = svc.PutItem(item)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		updateItemInput := &dynamodb.UpdateItemInput{
+			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+				":l": {
+					S: aws.String(newLocation),
+				},
+				":t": {
+					S: aws.String(currentTime),
+				},
+			},
+			TableName: aws.String(tableName),
+			Key: map[string]*dynamodb.AttributeValue{
+				"Username": {
+					S: aws.String(username),
+				},
+			},
+			ReturnValues:     aws.String("UPDATED_NEW"),
+			UpdateExpression: aws.String("set #loc = :l, #ts = :t"),
+			ExpressionAttributeNames: map[string]*string{
+				"#loc": aws.String("Location"),
+				"#ts":  aws.String("Timestamp"),
+			},
+		}
+
+		_, err = svc.UpdateItem(updateItemInput)
+		if err != nil {
+			panic(err)
+		}
+	}
 	locationHistory.UpdateLocationHistory(username, newLocation, currentTime)
-
-	fmt.Println("Location updated")
 }
 
 func SearchUsers(coordinates string, radius float64) []string {
 	svc := dynamodbclient.Connect()
 
-	tableName := "locations"
+	tableName := os.Getenv("LOCATIONS_TABLE")
 
 	input := &dynamodb.ScanInput{
 		TableName: aws.String(tableName),
