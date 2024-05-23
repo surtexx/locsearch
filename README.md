@@ -83,6 +83,13 @@ curl -X GET \
 http://localhost:8080/getDistanceTraveled\?username\=rgheorghe\&startDate\=2023-01-01T00:00:00+00:00\&endDate\=2024-12-30T00:00:00+00:00
 ```
 
+### Using Docker
+1. Build the Docker image
+```bash
+docker build -t locsearch --build-arg LOCATIONS_TABLE=<YOUR_LOCATIONS_TABLE> --build-arg LOCATION_HISTORY_TABLE=<YOUR_LOCATION_HISTORY_TABLE> .
+```
 
-
-
+2. Run the Docker container
+```bash
+docker run -p 8080:8080 locsearch
+```
