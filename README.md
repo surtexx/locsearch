@@ -93,3 +93,16 @@ docker build -t locsearch --build-arg LOCATIONS_TABLE=<YOUR_LOCATIONS_TABLE> --b
 ```bash
 docker run -p 8080:8080 locsearch
 ```
+
+### Using Kubernetes deployment
+1. Create the service and deployment
+```bash
+kubectl apply -f k8s
+```
+
+2. Get the service DNS
+```bash
+kubectl describe svc/locsearch | grep "LoadBalancer Ingress:"
+```
+
+3. Use the service DNS to access the application
